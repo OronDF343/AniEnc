@@ -47,6 +47,8 @@ namespace AniEnc
             {
                 using var inImg = new MagickImageCollection(fileName);
                 inImg.Flatten();
+                foreach (var img in inImg)
+                    img.Quality = 100;
                 var outFilePath = Path.ChangeExtension(fileName, "jxl");
                 await inImg.WriteAsync(outFilePath, MagickFormat.Jxl);
             }
@@ -92,10 +94,12 @@ namespace AniEnc
                     outImg.Add(img);
                 }
             }
-
+            
+            /*foreach (var img in outImg)
+                img.Quality = 100;*/
             await using var outFile = new FileStream(outFilePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None,
                                                      4096, FileOptions.Asynchronous);
-            await outImg.WriteAsync(outFile, new JxlWriteDefines { Effort = 6 });
+            await outImg.WriteAsync(outFile, MagickFormat.Jxl);
         }
 
         private static void PrintUsage()
