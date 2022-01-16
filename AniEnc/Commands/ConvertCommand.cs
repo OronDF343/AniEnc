@@ -112,7 +112,7 @@ namespace AniEnc.Commands
                 }
             }
 
-            await MagickConverter.WriteOutputFile(frames, OutputFile ?? Path.ChangeExtension(InputFile, OutputFormat.ToString()), OutputFormat);
+            await MagickConverter.WriteOutputFile(frames, OutputFile ?? Path.ChangeExtension(InputFile, OutputFormat.ToString().ToLowerInvariant()), OutputFormat);
 
             frames.Dispose();
         }
