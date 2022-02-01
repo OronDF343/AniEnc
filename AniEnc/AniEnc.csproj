@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CliFx" Version="2.2.1" />
-    <PackageReference Include="Magick.NET-Q8-OpenMP-x64" Version="8.6.0" />
+    <PackageReference Include="CliFx" Version="2.2.2" />
+    <PackageReference Include="Magick.NET-Q8-OpenMP-x64" Version="9.0.0" />
   </ItemGroup>
 
 </Project>
