@@ -171,14 +171,28 @@ namespace AniEnc.Commands
 
                     if (double.IsNaN(resizeWidth) && !double.IsNaN(resizeHeight))
                     {
-                        var aspect = (double)frame.Width / frame.Height;
-                        resizeWidth = resizeHeight * aspect;
+                        if (isHeightPercent)
+                        {
+                            resizeWidth = resizeHeight;
+                        }
+                        else
+                        {
+                            var aspect = (double)frame.Width / frame.Height;
+                            resizeWidth = resizeHeight * aspect;
+                        }
                         isWidthPercent = isHeightPercent;
                     }
                     else if (!double.IsNaN(resizeWidth) && double.IsNaN(resizeHeight))
                     {
-                        var aspect = (double)frame.Height / frame.Width;
-                        resizeHeight = resizeWidth * aspect;
+                        if (isWidthPercent)
+                        {
+                            resizeWidth = resizeHeight;
+                        }
+                        else
+                        {
+                            var aspect = (double)frame.Height / frame.Width;
+                            resizeHeight = resizeWidth * aspect;
+                        }
                         isHeightPercent = isWidthPercent;
                     }
 
