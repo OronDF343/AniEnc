@@ -12,7 +12,7 @@ Cross-platform tool for converting and resizing animations, powered by [Magick.N
 * Any platform supported by both [.NET](https://docs.microsoft.com/en-us/dotnet/core/install/) and [Magick.NET](https://github.com/dlemstra/Magick.NET/#supported-platforms)
   - On x86/x64, Windows/Linux/macOS should all work
   - ARM is not fully supported
-* [.NET 6.0 Runtime](https://docs.microsoft.com/en-us/dotnet/core/install/)
+* [.NET 6.0 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)
 * (optional) FFmpeg installed to `$PATH` 
   - This is required for some formats such as WebM, APNG
   - On Windows, I use [media-autobuild_suite](https://github.com/m-ab-s/media-autobuild_suite) to build FFmpeg
