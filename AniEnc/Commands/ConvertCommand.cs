@@ -1,5 +1,6 @@
 ﻿using CliFx;
 using CliFx.Attributes;
+using CliFx.Exceptions;
 using CliFx.Infrastructure;
 using ImageMagick;
 
@@ -32,6 +33,9 @@ namespace AniEnc.Commands
         [CommandOption("optimize", 'p', Description = "Optimize GIF and similar formats. 0 = off (default), 1 = normal, 2 = plus, 3 = transparency, 4 = 1 + 3, 5 = 2 + 3.")]
         public int OptimizeLevel { get; set; }
 
+        [CommandOption("overwrite", 'y', Description = "Set this flag to ignore prompts about overwriting existing files.")]
+        public bool Overwrite { get; set; }
+
         public async ValueTask ExecuteAsync(IConsole console)
         {
             // NaN is auto
@@ -41,8 +45,7 @@ namespace AniEnc.Commands
             {
                 if (Resize.Length != 1 && Resize.Length != 2)
                 {
-                    await console.Error.WriteLineAsync("Invalid number of parameters for resize option, must be 2 parameters: width height.");
-                    return;
+                    throw new CommandException("Invalid number of parameters for resize option, must be 2 parameters: width height.");
                 }
 
                 (resizeWidth, isWidthPercent) = ParseDimension(Resize[0]);
@@ -51,15 +54,26 @@ namespace AniEnc.Commands
 
                 if (double.IsNaN(resizeWidth) && double.IsNaN(resizeHeight))
                 {
-                    await console.Error.WriteLineAsync("Invalid resize, at least one dimension must be non-auto.");
-                    return;
+                    throw new CommandException("Invalid resize, at least one dimension must be non-auto.");
                 }
             }
 
             if (!File.Exists(InputFile))
             {
-                await console.Error.WriteLineAsync($"File not found: {InputFile}");
-                return;
+                throw new CommandException($"File not found: {InputFile}");
+            }
+
+            OutputFile ??= Path.ChangeExtension(InputFile, OutputFormat.ToString().ToLowerInvariant());
+            if (File.Exists(OutputFile))
+            {
+                await console.Error.WriteAsync($"File exists: {OutputFile}\nOverwrite? (Y/N) ");
+#pragma warning disable CliFx_SystemConsoleShouldBeAvoided // Avoid calling `System.Console` where `CliFx.Infrastructure.IConsole` is available
+                var key = Console.ReadKey();
+#pragma warning restore CliFx_SystemConsoleShouldBeAvoided // Avoid calling `System.Console` where `CliFx.Infrastructure.IConsole` is available
+                if (char.ToLowerInvariant(key.KeyChar) != 'y')
+                {
+                    return;
+                }
             }
 
             var inputFormat = Path.GetExtension(InputFile).TrimStart('.').ToLowerInvariant();
@@ -75,13 +89,11 @@ namespace AniEnc.Commands
 
                 if (!File.Exists(InputFile))
                 {
-                    await console.Error.WriteLineAsync($"File not found: {InputFile}");
-                    return;
+                    throw new CommandException($"File not found: {InputFile}");
                 }
                 if (!File.Exists(jsFile))
                 {
-                    await console.Error.WriteLineAsync($"File not found: {jsFile}");
-                    return;
+                    throw new CommandException($"File not found: {jsFile}");
                 }
                 frames = await MagickConverter.ConvertUgoira(InputFile, jsFile);
             }
@@ -91,8 +103,7 @@ namespace AniEnc.Commands
             }
             if (frames == null)
             {
-                await console.Error.WriteLineAsync("Failed to parse input file (Ugoira JS)");
-                return;
+                throw new CommandException("Failed to parse input file (Ugoira JS)");
             }
 
             await console.Output.WriteLineAsync($"Count:{frames.Count}");
@@ -169,7 +180,7 @@ namespace AniEnc.Commands
                 }
             }
 
-            await MagickConverter.WriteOutputFile(frames, OutputFile ?? Path.ChangeExtension(InputFile, OutputFormat.ToString().ToLowerInvariant()), OutputFormat);
+            await MagickConverter.WriteOutputFile(frames, OutputFile, OutputFormat);
 
             frames.Dispose();
         }
