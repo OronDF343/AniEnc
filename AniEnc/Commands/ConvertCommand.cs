@@ -186,7 +186,7 @@ namespace AniEnc.Commands
                     {
                         if (isWidthPercent)
                         {
-                            resizeWidth = resizeHeight;
+                            resizeHeight = resizeWidth;
                         }
                         else
                         {
