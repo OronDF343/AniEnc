@@ -23,21 +23,37 @@ namespace AniEnc.Commands
         [CommandOption("noise", 'n', Description = "Noise reduction.")]
         public bool ReduceNoise { get; set; }
 
-        [CommandOption("resize", 'r', Description = "Dimensions to resize to.")]
-        public int[]? Resize { get; set; }
+        [CommandOption("resize", 'r', Description = "Dimensions to resize to (width height). Units supported: px (default), %, auto. If only the width is specified, the height will be set to auto. Examples: -r 640 480, -r 200%, -r auto 768")]
+        public string[]? Resize { get; set; } = null;
 
         [CommandOption("interpolate", 'i', Description = "Resize type (default nearest).")]
-        public PixelInterpolateMethod PixelInterpolateMethod { get; set; } = ImageMagick.PixelInterpolateMethod.Nearest;
+        public PixelInterpolateMethod PixelInterpolateMethod { get; set; } = PixelInterpolateMethod.Nearest;
 
         [CommandOption("optimize", 'p', Description = "Optimize GIF and similar formats. 0 = off (default), 1 = normal, 2 = plus, 3 = transparency, 4 = 1 + 3, 5 = 2 + 3.")]
         public int OptimizeLevel { get; set; }
 
         public async ValueTask ExecuteAsync(IConsole console)
         {
-            if (Resize != null && Resize.Length != 2)
+            // NaN is auto
+            double resizeWidth = double.NaN, resizeHeight = double.NaN;
+            bool isWidthPercent = false, isHeightPercent = false;
+            if (Resize != null)
             {
-                await console.Error.WriteLineAsync("Invalid number of parameters for resize option, must be 2 parameters: width, height");
-                return;
+                if (Resize.Length != 1 && Resize.Length != 2)
+                {
+                    await console.Error.WriteLineAsync("Invalid number of parameters for resize option, must be 2 parameters: width height.");
+                    return;
+                }
+
+                (resizeWidth, isWidthPercent) = ParseDimension(Resize[0]);
+                if (Resize.Length > 1)
+                    (resizeHeight, isHeightPercent) = ParseDimension(Resize[1]);
+
+                if (double.IsNaN(resizeWidth) && double.IsNaN(resizeHeight))
+                {
+                    await console.Error.WriteLineAsync("Invalid resize, at least one dimension must be non-auto.");
+                    return;
+                }
             }
 
             if (!File.Exists(InputFile))
@@ -100,7 +116,30 @@ namespace AniEnc.Commands
             {
                 foreach (var frame in frames)
                 {
-                    frame.InterpolativeResize(Resize[0], Resize[1], PixelInterpolateMethod);
+                    if (double.IsNaN(resizeWidth) && !double.IsNaN(resizeHeight))
+                    {
+                        var aspect = (double)frame.Width / frame.Height;
+                        resizeWidth = resizeHeight * aspect;
+                        isWidthPercent = isHeightPercent;
+                    }
+                    else if (!double.IsNaN(resizeWidth) && double.IsNaN(resizeHeight))
+                    {
+                        var aspect = (double)frame.Height / frame.Width;
+                        resizeHeight = resizeWidth * aspect;
+                        isHeightPercent = isWidthPercent;
+                    }
+                    var width = (int)Math.Round(resizeWidth);
+                    var height = (int)Math.Round(resizeHeight);
+                    if (isWidthPercent)
+                    {
+                        width = (int)Math.Round(frame.Width * resizeWidth / 100.0);
+                    }
+                    if (isHeightPercent)
+                    {
+                        height = (int)Math.Round(frame.Height * resizeHeight / 100.0);
+                    }
+
+                    frame.InterpolativeResize(width, height, PixelInterpolateMethod);
                 }
             }
 
@@ -133,6 +172,18 @@ namespace AniEnc.Commands
             await MagickConverter.WriteOutputFile(frames, OutputFile ?? Path.ChangeExtension(InputFile, OutputFormat.ToString().ToLowerInvariant()), OutputFormat);
 
             frames.Dispose();
+        }
+
+        private (double dimension, bool isPercent) ParseDimension(string v)
+        {
+            if (string.Equals(v, "auto", StringComparison.OrdinalIgnoreCase) || string.Equals(v, "a", StringComparison.OrdinalIgnoreCase))
+                return (double.NaN, false);
+            var isPercent = v.EndsWith("%", StringComparison.OrdinalIgnoreCase);
+            if (isPercent)
+                v = v[..^1];
+            else if (v.EndsWith("px", StringComparison.OrdinalIgnoreCase))
+                v = v[..^2];
+            return (double.Parse(v), isPercent);
         }
     }
 }
