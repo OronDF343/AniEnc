@@ -36,6 +36,9 @@ namespace AniEnc.Commands
         [CommandOption("overwrite", 'y', Description = "Set this flag to ignore prompts about overwriting existing files.")]
         public bool Overwrite { get; set; }
 
+        [CommandOption("verbose", 'v', Description = "Print verbose information.")]
+        public bool Verbose { get; set; }
+
         public async ValueTask ExecuteAsync(IConsole console)
         {
             // NaN is auto
@@ -49,8 +52,14 @@ namespace AniEnc.Commands
                 }
 
                 (resizeWidth, isWidthPercent) = ParseDimension(Resize[0]);
+                if (Verbose)
+                    await console.Error.WriteLineAsync($"Parsed width string {Resize[0]} as (Value: {resizeWidth}, IsPercent: {isWidthPercent})");
                 if (Resize.Length > 1)
+                {
                     (resizeHeight, isHeightPercent) = ParseDimension(Resize[1]);
+                    if (Verbose)
+                        await console.Error.WriteLineAsync($"Parsed height string {Resize[1]} as (Value: {resizeHeight}, IsPercent: {isHeightPercent})");
+                }
 
                 if (double.IsNaN(resizeWidth) && double.IsNaN(resizeHeight))
                 {
@@ -76,16 +85,25 @@ namespace AniEnc.Commands
                 }
             }
 
+            if (Verbose)
+                await console.Error.WriteLineAsync($"Input file: {InputFile}\nOutput file: {OutputFile}");
+
             var inputFormat = Path.GetExtension(InputFile).TrimStart('.').ToLowerInvariant();
 
             MagickImageCollection? frames;
             if (inputFormat == "zip" || inputFormat == "js")
             {
+                if (Verbose)
+                    await console.Error.WriteLineAsync("Detected Ugoira file");
+
                 if (inputFormat == "js")
                 {
                     InputFile = InputFile[..^3];
                 }
                 var jsFile = InputFile + ".js";
+
+                if (Verbose)
+                    await console.Error.WriteLineAsync($"Ugoira ZIP: {InputFile}\nUgoira JS: {jsFile}");
 
                 if (!File.Exists(InputFile))
                 {
@@ -96,37 +114,57 @@ namespace AniEnc.Commands
                     throw new CommandException($"File not found: {jsFile}");
                 }
                 frames = await MagickConverter.ConvertUgoira(InputFile, jsFile);
+
+                if (frames == null)
+                {
+                    throw new CommandException("Failed to parse input file: Ugoira JS is invalid");
+                }
             }
             else
             {
+                if (Verbose)
+                    await console.Error.WriteLineAsync("Opening input file as image");
+
                 frames = await MagickConverter.OpenFile(InputFile);
             }
+
             if (frames == null)
             {
-                throw new CommandException("Failed to parse input file (Ugoira JS)");
+                throw new CommandException("Failed to parse input file: Unknown error");
             }
 
-            await console.Output.WriteLineAsync($"Count:{frames.Count}");
+            if (Verbose)
+                await console.Output.WriteLineAsync($"Frame count: {frames.Count}");
             await console.Output.WriteLineAsync($"Size0:{frames[0].Width}x{frames[0].Height}");
             await console.Output.WriteLineAsync($"Delay0:{frames[0].AnimationDelay}");
 
             if (Coalesce || Resize != null)
             {
+                if (Verbose)
+                    await console.Error.WriteLineAsync("Coalesce");
+
                 frames.Coalesce();
             }
 
             if (ReduceNoise)
             {
+                var i = 0;
                 foreach (var frame in frames)
                 {
+                    if (Verbose)
+                        await console.Error.WriteLineAsync($"Reducing noise in frame #{++i}");
                     frame.ReduceNoise();
                 }
             }
 
             if (Resize != null)
             {
+                var i = 0;
                 foreach (var frame in frames)
                 {
+                    if (Verbose)
+                        await console.Error.WriteLineAsync($"Resizing frame #{++i}");
+
                     if (double.IsNaN(resizeWidth) && !double.IsNaN(resizeHeight))
                     {
                         var aspect = (double)frame.Width / frame.Height;
@@ -139,6 +177,7 @@ namespace AniEnc.Commands
                         resizeHeight = resizeWidth * aspect;
                         isHeightPercent = isWidthPercent;
                     }
+
                     var width = (int)Math.Round(resizeWidth);
                     var height = (int)Math.Round(resizeHeight);
                     if (isWidthPercent)
@@ -150,6 +189,9 @@ namespace AniEnc.Commands
                         height = (int)Math.Round(frame.Height * resizeHeight / 100.0);
                     }
 
+                    if (Verbose)
+                        await console.Error.WriteLineAsync($"Frame #{i} will be resized from {frame.Width}x{frame.Height} to {width}x{height}");
+
                     frame.InterpolativeResize(width, height, PixelInterpolateMethod);
                 }
             }
@@ -158,29 +200,49 @@ namespace AniEnc.Commands
             {
                 if (OptimizeLevel == 1)
                 {
+                    if (Verbose)
+                        await console.Error.WriteLineAsync("Optimize");
                     frames.Optimize();
                 }
                 else if (OptimizeLevel == 2)
                 {
+                    if (Verbose)
+                        await console.Error.WriteLineAsync("OptimizePlus");
                     frames.OptimizePlus();
                 }
                 else if (OptimizeLevel == 3)
                 {
+                    if (Verbose)
+                        await console.Error.WriteLineAsync("OptimizeTransparency");
                     frames.OptimizeTransparency();
                 }
                 else if (OptimizeLevel == 4)
                 {
+                    if (Verbose)
+                        await console.Error.WriteLineAsync("Optimize");
                     frames.Optimize();
+                    if (Verbose)
+                        await console.Error.WriteLineAsync("OptimizeTransparency");
                     frames.OptimizeTransparency();
                 }
                 else if (OptimizeLevel == 5)
                 {
+                    if (Verbose)
+                        await console.Error.WriteLineAsync("OptimizePlus");
                     frames.OptimizePlus();
+                    if (Verbose)
+                        await console.Error.WriteLineAsync("OptimizeTransparency");
                     frames.OptimizeTransparency();
                 }
             }
 
+            if (Verbose)
+                await console.Error.WriteLineAsync("Writing output file");
+
             await MagickConverter.WriteOutputFile(frames, OutputFile, OutputFormat);
+
+            if (Verbose)
+                await console.Error.WriteLineAsync("Done");
 
             frames.Dispose();
         }
