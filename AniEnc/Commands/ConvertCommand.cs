@@ -21,7 +21,7 @@ namespace AniEnc.Commands
         [CommandOption("coalesce", 'c', Description = "Coalesces the animation before processing. Disabled by default, but always enabled if resizing.")]
         public bool Coalesce { get; set; }
 
-        [CommandOption("noise", 'n', Description = "Noise reduction.")]
+        [CommandOption("enhance", 'e', Description = "Enhance the image (useful for noise reduction).")]
         public bool ReduceNoise { get; set; }
 
         [CommandOption("resize", 'r', Description = "Dimensions to resize to (width height). Units supported: px (default), %, auto. If only the width is specified, the height will be set to auto. Examples: -r 640 480, -r 200%, -r auto 768")]
@@ -156,8 +156,8 @@ namespace AniEnc.Commands
                 foreach (var frame in frames)
                 {
                     if (Verbose)
-                        await console.Error.WriteLineAsync($"Reducing noise in frame #{++i}");
-                    frame.ReduceNoise();
+                        await console.Error.WriteLineAsync($"Enhancing frame #{++i}");
+                    frame.Enhance();
                 }
             }
 
