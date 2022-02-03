@@ -4,9 +4,10 @@ Cross-platform tool for converting and resizing animations, powered by [Magick.N
 ## Implemented features
 
 * Conversion (to any format supported by ImageMagick)
-* Resizing (including selection of algorithm)
+* Resizing (px / % / auto, various interpolation algorithms)
 * GIF optimization (all options available in Magick.NET)
 * Coalesce (by default when resizing)
+* Image enhancement
 
 ## System requirements
 * Any platform supported by both [.NET](https://docs.microsoft.com/en-us/dotnet/core/install/) and [Magick.NET](https://github.com/dlemstra/Magick.NET/#supported-platforms)
@@ -38,7 +39,7 @@ AniEnc has support for converting Ugoira. These are animations from Pixiv, downl
 
 ## Future plans
 
-* Better resizing options (percentage)
+* Better resizing options (fit)
 * Noise reduction algorithms
 * Extra support for JPEG XL animations (one of the initial goals of this project, as soon as ImageMagick has support)
 * Simple timing adjustments
