@@ -134,9 +134,13 @@ namespace AniEnc.Commands
             }
 
             if (Verbose)
+            {
                 await console.Output.WriteLineAsync($"Frame count: {frames.Count}");
-            await console.Output.WriteLineAsync($"Size0:{frames[0].Width}x{frames[0].Height}");
-            await console.Output.WriteLineAsync($"Delay0:{frames[0].AnimationDelay}");
+                await console.Output.WriteLineAsync($"Maximum frame size: {frames.Select(i => (int?)i.Width).Max()}x{frames.Select(i => (int?)i.Height).Max()}");
+                var delayEnumerable = frames.Select(i => (int?)i.AnimationDelay);
+                var tpsEnumerable = frames.Select(i => (int?)i.AnimationTicksPerSecond);
+                await console.Output.WriteLineAsync($"Animation delay: {delayEnumerable.Min()} to {delayEnumerable.Max()} ({tpsEnumerable.Min()} to {tpsEnumerable.Max()} ticks per second)");
+            }
 
             if (Coalesce || Resize != null)
             {
@@ -190,7 +194,7 @@ namespace AniEnc.Commands
                     }
 
                     if (Verbose)
-                        await console.Error.WriteLineAsync($"Frame #{i} will be resized from {frame.Width}x{frame.Height} to {width}x{height}");
+                        await console.Error.WriteLineAsync($"Frame #{i} will be resized from {frame.Width}x{frame.Height} to {width}x{height} with method {PixelInterpolateMethod}");
 
                     frame.InterpolativeResize(width, height, PixelInterpolateMethod);
                 }
