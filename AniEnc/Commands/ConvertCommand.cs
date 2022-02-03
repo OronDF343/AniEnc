@@ -40,6 +40,12 @@ namespace AniEnc.Commands
                 return;
             }
 
+            if (!File.Exists(InputFile))
+            {
+                await console.Error.WriteLineAsync($"File not found: {InputFile}");
+                return;
+            }
+
             var inputFormat = Path.GetExtension(InputFile).TrimStart('.').ToLowerInvariant();
 
             MagickImageCollection? frames;
@@ -49,7 +55,19 @@ namespace AniEnc.Commands
                 {
                     InputFile = InputFile[..^3];
                 }
-                frames = await MagickConverter.ConvertUgoira(InputFile, InputFile + ".js");
+                var jsFile = InputFile + ".js";
+
+                if (!File.Exists(InputFile))
+                {
+                    await console.Error.WriteLineAsync($"File not found: {InputFile}");
+                    return;
+                }
+                if (!File.Exists(jsFile))
+                {
+                    await console.Error.WriteLineAsync($"File not found: {jsFile}");
+                    return;
+                }
+                frames = await MagickConverter.ConvertUgoira(InputFile, jsFile);
             }
             else
             {
@@ -57,7 +75,7 @@ namespace AniEnc.Commands
             }
             if (frames == null)
             {
-                await console.Error.WriteLineAsync("Failed to open input file");
+                await console.Error.WriteLineAsync("Failed to parse input file (Ugoira JS)");
                 return;
             }
 

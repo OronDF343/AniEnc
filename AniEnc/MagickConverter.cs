@@ -15,17 +15,6 @@ namespace AniEnc
 
         public static async Task<MagickImageCollection?> ConvertUgoira(string zipFile, string jsFile)
         {
-            if (!File.Exists(zipFile))
-            {
-                Console.Error.WriteLine($"File not found: {zipFile}");
-                return null;
-            }
-            if (!File.Exists(jsFile))
-            {
-                Console.Error.WriteLine($"File not found: {jsFile}");
-                return null;
-            }
-
             Ugoira? ugoira;
             await using (var inFile = new FileStream(jsFile, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
                                                      FileOptions.Asynchronous))
@@ -35,7 +24,6 @@ namespace AniEnc
 
             if (ugoira == null)
             {
-                Console.Error.WriteLine($"Failed to parse JSON: {jsFile}");
                 return null;
             }
 
