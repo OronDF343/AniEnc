@@ -34,7 +34,7 @@ To optimize a GIF:
 
 ## Unique features
 
-AniEnc has support for converting Ugoira. These are animations from Pixiv, downloaded with a tool such as [PixivUtil2](https://github.com/nandaka/PixivUtil2). Two files are required, `.zip` and `.zip.js`.
+AniEnc has support for converting Ugoira. These are animations from Pixiv, downloaded with a tool such as [PixivUtil2](https://github.com/nandaka/PixivUtil2). Two files are required, `.zip` and `.zip.js` - specify one of them as the input and the tool will find the other one automatically.
 
 ## Future plans
 
