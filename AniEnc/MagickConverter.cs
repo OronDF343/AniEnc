@@ -2,61 +2,60 @@
 using System.Text.Json;
 using ImageMagick;
 
-namespace AniEnc
+namespace AniEnc;
+
+public static class MagickConverter
 {
-    public static class MagickConverter
+    public static async Task<MagickImageCollection> OpenFile(string inputFile)
     {
-        public static async Task<MagickImageCollection> OpenFile(string inputFile)
+        await using var inFile = new FileStream(inputFile, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
+                                                     FileOptions.Asynchronous);
+        return new MagickImageCollection(inFile);
+    }
+
+    public static async Task<MagickImageCollection?> ConvertUgoira(string zipFile, string jsFile)
+    {
+        Ugoira? ugoira;
+        await using (var inFile = new FileStream(jsFile, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
+                                                 FileOptions.Asynchronous))
         {
-            await using var inFile = new FileStream(inputFile, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
-                                                         FileOptions.Asynchronous);
-            return new MagickImageCollection(inFile);
+            ugoira = await JsonSerializer.DeserializeAsync<Ugoira>(inFile);
         }
 
-        public static async Task<MagickImageCollection?> ConvertUgoira(string zipFile, string jsFile)
+        if (ugoira == null)
         {
-            Ugoira? ugoira;
-            await using (var inFile = new FileStream(jsFile, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
-                                                     FileOptions.Asynchronous))
-            {
-                ugoira = await JsonSerializer.DeserializeAsync<Ugoira>(inFile);
-            }
+            return null;
+        }
 
-            if (ugoira == null)
-            {
-                return null;
-            }
+        var outImg = new MagickImageCollection();
 
-            var outImg = new MagickImageCollection();
-
-            await using (var inFile = new FileStream(zipFile, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
-                                                     FileOptions.Asynchronous))
+        await using (var inFile = new FileStream(zipFile, FileMode.Open, FileAccess.Read, FileShare.Read, 4096,
+                                                 FileOptions.Asynchronous))
+        {
+            using var zip = new ZipArchive(inFile, ZipArchiveMode.Read, true);
+            foreach (var frame in ugoira.Frames)
             {
-                using var zip = new ZipArchive(inFile, ZipArchiveMode.Read, true);
-                foreach (var frame in ugoira.Frames)
+                if (frame.File != null)
                 {
-                    if (frame.File != null)
+                    var entry = zip.GetEntry(frame.File);
+                    if (entry != null)
                     {
-                        var entry = zip.GetEntry(frame.File);
-                        if (entry != null)
-                        {
-                            var img = new MagickImage(entry.Open());
-                            img.AnimationDelay = frame.Delay;
-                            img.AnimationTicksPerSecond = 1000;
-                            outImg.Add(img);
-                        }
+                        var img = new MagickImage(entry.Open());
+                        img.AnimationDelay = (uint) frame.Delay;
+                        img.AnimationTicksPerSecond = 1000;
+                        outImg.Add(img);
                     }
                 }
             }
-
-            return outImg;
         }
 
-        public static async Task WriteOutputFile(MagickImageCollection images, string outputPath, MagickFormat format)
-        {
-            await using var outFile = new FileStream(outputPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None,
-                                                     4096, FileOptions.Asynchronous);
-            await images.WriteAsync(outFile, format);
-        }
+        return outImg;
+    }
+
+    public static async Task WriteOutputFile(MagickImageCollection images, string outputPath, MagickFormat format)
+    {
+        await using var outFile = new FileStream(outputPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None,
+                                                 4096, FileOptions.Asynchronous);
+        await images.WriteAsync(outFile, format);
     }
 }
