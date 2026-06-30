@@ -1,19 +1,18 @@
 ﻿using CliFx;
-using CliFx.Attributes;
-using CliFx.Exceptions;
+using CliFx.Binding;
 using CliFx.Infrastructure;
 using ImageMagick;
 
 namespace AniEnc.Commands;
 
 [Command(Description = "Converts an animation to another format")]
-public class ConvertCommand : ICommand
+public partial class ConvertCommand : ICommand
 {
-    [CommandParameter(0, Name = "input", IsRequired = true, Description = "The input file.")]
-    public string InputFile { get; set; } = "";
+    [CommandParameter(0, Name = "input", Description = "The input file.")]
+    public required string InputFile { get; set; } = "";
 
-    [CommandOption("format", 'f', IsRequired = true, Description = "The output format (jxl/gif/mng/apng).")]
-    public MagickFormat OutputFormat { get; set; }
+    [CommandOption("format", 'f', Description = "The output format (jxl/gif/mng/apng).")]
+    public required MagickFormat OutputFormat { get; set; }
 
     [CommandOption("output", 'o', Description = "The output file name (default the is same as the input file name).")]
     public string? OutputFile { get; set; }
